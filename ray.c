@@ -97,7 +97,7 @@ struct BOBJECT {
 };
 
 struct RAY {
-    float X1,Y1,X2,Y2,Z1,Z2; /* x-X1*t+X2; y-Y1*t+Y2; z-Z1*t+Z2 */
+    float X1,Y1,X2,Y2,Z1,Z2; /* x=X1*t+X2; y=Y1*t+Y2; z=Z1*t+Z2 */
 };
 
 struct BOBJECT bobject[200]; /* 0-99 are objects, and 100-199 are lights */
@@ -388,7 +388,7 @@ drawbobjects()
   height=WINDOWY2-WINDOWY1;
 
   step=INITSTEP;
-  if (TODISK) step-1;
+  if (TODISK) step=1;
   do {
 
      for(y=ystart;(y<=yend)&&(!done);y+=step)
@@ -510,9 +510,9 @@ drawbobjects()
 
 
 
-       getpixelcolor(X,Y,RR,GG,BB)
-       float X,Y;
-       int *RR,*GG,*BB;
+getpixelcolor(X,Y,RR,GG,BB)
+    float X,Y;
+    int *RR,*GG,*BB;
 {
          struct RAY ray;
          float r,rr,th,a,XX,YY,ZZ,XXX,YYY,ZZZ;
@@ -606,292 +606,176 @@ int *RR,*GG,*BB,inglass;
        *GG=bobject[i].Green;
        *BB=bobject[i].Blue;
 
-       this should be the top right of page 5, but it's not.
+  rr=1.0/sqrt(nx*nx+ny*ny+nz*nz);
+  if (isinside) rr= -rr; /* We're looking at the INSIDE of an object */
+  nx*=rr; ny*=rr; nz*=rr;
+  a=ma=0;
+  for (j=100; j< (100+NUMLIGHTS) ; j++)
+  {
 
+   lx=bobject[j].x-x;
+   ly=bobject[j].y-y;
+   lz=bobject[j].z-z;
+   temp=1.0/sqrt(lx*lx+ly*ly+lz*lz);
+   lx*=temp; ly*=temp; lz*=temp;
+   rad=lx*nx+ly*ny+lz*nz;
+   if (bobject[i].reflect==MATTE)
+   {
 
-                  if (val--RIGHTMOUSE)
-                  (
-                    if (ZOOM - -2)
-                       ZOOMX2-xx;
-                       ZOOMY2-yy;
-                       ZOOM-3;
+     getreflection(ray.X1,ray.Y1,ray.Z1,nx,ny,nz,&newray.X1,&newray.Y1,&newray.Z1);
+     mrad=newray.X1*lx+newray.Y1*ly+newray.Z1*lz;
+     ma+=mrad;
+   }
 
-                    if ((xx>xend)II(yy>yend)) skip-TRUE;
-                    xend-xx-xx%step;
-                    yend■yy-yy%step;
-
-                  if (val...MIDDLEMOUSE) done-TRUE;
-
-
-              while ((d1-0)&&(vall■KEYBD));
-            1
-      #endif
-            if (TODISK)
-
-              if (ANTIALIASINGWy>ystart))
-                antialiasrow(RA,GA,BA,downRA,downGA,downBA,y);
-              fwrite (downRA,1,1024,f);
-              fwrite (downGA,1,1024,f);
-              fwrite (downBA,1,1024,f);
-
-
-          step/-2;
-        1
-        while ((step     ENDSTEP)WZOOM1-3));
-        if (TODISK)
-
-          fwrite (RA,1,1024,f);
-          fwrite (GA,1,1024,f);
-          fwrite (BA,1,1024,f);
-
-
-
-      getpixelcolor(X,Y,RR,GG,BB)
-      float X,Y;
-      int *RR,*GG,*BB;
-
-        struct RAY ray;
-        float r,rr,th,a,XX,YY,ZZ,XXX,YYY,ZZZ;
-
-        /* The next few lines are the transformation to move the window around
-
-        rr=1.0/sqrt(sqr(EYEX-CENTERX)+sqr(EYEY-CENTERY)+sqr(EYEZ-CENTERZ));
-        XX-EYEX-(EYEX-CENTERX)*rr;
-        YY-EYEY-(EYEY-CENTERY)*rr;
-        ZZ.-EYEZ-(EYEZ-CENTERZ)*rr;
-
-        XXX-EYEX-XX;
-        YYYEYEY-YY;
-        ZZZ-EYEZ-ZZ;
-      /* ray.X1-(X)*sgrt(ZZZ*ZZZ+YYY*YYY)+(-Y)*XXX*YYY-XXX;
-        ray.Y1- (Y) *sgrt (ZZZ*ZZZ+XXX*XXX) -YYY;
-        ray.Z1-(-X)*XXX+(-Y)*YYY-ZZZ;*/
-
-        rr-sgrt(XXX*XXX+ZZZ*ZZZ);
-        ray.X1-(Y*XXX*YYY+X*ZZZI/rr-XXX;
-        ray.Y1-Y*rr-YYY;
-        ray.Z1..(-X*XXX+Y*ZZZ*YYY)/rr-ZZZ;
-  ray.X2-EYEX;
-  ray.Y2-EYEY;
-  ray. Z2-EYEZ;
-
-  *RR..(ini)((-Y+HEIGHT/2)/HEIGHT*255);
-  if (*RR > 255) *RR-255;
-  if (*RR < 0) *RR-0;
-  *GG- *RR;
-  *BB- 255;
-
-  getraycolor (ray,RR,GG,BB,FALSE);
-
-
-getraycolor (ray,RR,GG,BB,inglass)
-struct RAY ray;
-int *RR,*GG,*BB,inglass;
-{
-  /* getraycolor returns the color of the object at the point at which the */
-  /* ray intersects the nearest object. If the object is reflective, then */
-  /* getraycolor is called recursively with the reflected or refracted ray */
-
-  int r,g,b,i,j,RRR,GGG,BBB,closest,intersect,isinside;
-  float x,y,z,t,A,B,C,q,cx,cy,cz,a,nx,ny,nz,lx,ly,lz,rr,rad,inshadow,temp,mrad,ma;
-  struct RAY newray;
-
-  rr-1.0/sqrt(ray.X1*ray.X1+ray.Y1*ray.Y1+ray.Z1*ray.Z1);
-  ray.X1*■rr;
-  ray.Y1*∎rr;
-  ray.Z1*--rr;
-  ray.X2+-.ray.X1;
-  ray.Y2+-ray.Y1;
-  ray.Z2+..ray.Z1;
-  intersect-FALSE;
-  cr99999999999;
-  for (1-0;i<NUMBOBJECTS;i++) /* Find nearest object */
-
-    t.-getintersection(i,ray,inglass);
-    if ((t < q) ts (t > 0))
-
-     q-t;
-     closest-i;
-     intersect-TRUE;
-
-  1
-  if (intersect)
-
-    t -q;
-    1-closest;
-    isinside-inside[i];
-    {
-     lo.ray.X1*t+ray.X2;
-     p.ray.Y1*t+ray.Y2;
-     z..ray.Z1*t+ray.Z2;
-     inshadow-checkifinshadow(x,y,z): /* Returns brightness at that point */
-     getnormalvector(i,x,y,z,&nx,&ny,&nz);
-     if (bobject[i].Red....SILVER)
-
-       *RR.. *GG- *BB-150;
-
-     else
-
-       *RR-bobject[i].Red;
-       *GG-bobject[i].Green;
-       *BB-bobject[i].Blue;
-  rr-1.0/sqrt(nx*nx+ny*ny+nz*nz);
-  if (isinside) rr- -rr; /* We're looking at the INSIDE of an object */
-  nx*-rr; ny*..rr; nz*-rr;
-  a-ma-0;
-  for (j-100; j< (100+NUMLIGHTS) ; j++)
-
-   lx-bobject[j].x-x;
-   ly..bobject[j].y-y;
-   lz-bobject[j].z-z;
-   temp-1.0/sqrt(lx*lx+ly*ly+lz*lz);
-   lx*-temp; ly*..temp; lz*..temp;
-   rad-lx*nx+ly*ny+lz*nz;
-   if (bobject[i].reflect--MATTE)
-
-     getreflection(ray.X1,ray.Y1,ray.Z1,nx,ny,nz,‘newray.X1,&newray.Y1,&newray.Z1);
-     mrad-newray.X1*lx+newray.Y1*ly+newrayal*lz;
-     ma+-mrad;
-
-   if (rad > 0) a+-rad;
-  1
-  a/-NUMLIGHTS;
-  if (a<0.0)
-  if (a>1.0)
-  *RR...(int)(*RR*a*inshadow);
-  *GG-(int)(*GG*a*inshadow);
-  *BB.-(int)(*BB*a*inshadow);
-  if (bobject[i).reflect==MATTE)
-
+   if (rad > 0) a+=rad;
+  }
+  a/=NUMLIGHTS;
+  if (a<0.0) a = 0;
+  if (a>1.0) a = 1;
+  *RR=(int)(*RR*a*inshadow);
+  *GG=(int)(*GG*a*inshadow);
+  *BB=(int)(*BB*a*inshadow);
+  if (bobject[i].reflect==MATTE)
+  {
    ma/=NUMLIGHTS;
-   if (ma<0.0) ma-0.0;
-   if (ma>1.0) ma-1.0;
-   ma*-ma*ma;
-   *RR-(int)(*RR+(255-*RR)*ma);
-   *GG-(int)(*GG+(255-*GG)*ma);
-   *BB...(int)(*BB+(255-*BB)*ma);
+   if (ma<0.0) ma=0.0;
+   if (ma>1.0) ma=1.0;
+   ma*=ma*ma;
+   *RR=(int)(*RR+(255-*RR)*ma);
+   *GG=(int)(*GG+(255-*GG)*ma);
+   *BB=(int)(*BB+(255-*BB)*ma);
+  }
 
-  if ((bobject[i].reflect )- DULL)&4(bobjectti].reflect 1= MATTE))
-  f
-   getreflection(ray.X1,ray.Y1,ray.Z1,nx,ny,nz,&newray.X1,‘newray.Y1,&newray.Z1);
-   newray.X2-x;
-   newray.Y2-y;
-   newray.Z2..z;
-   if (bobject[ii.Red”SILVER)
-
-     RRR- *RR;
-     GGG■ *GG;
-     BBB.* *BB;
-     getraycolor(newray,iRRR,I,GGG,038B,inglass);
-     *RR-(RRR+*RR)*0.5;
-     *GG-(GGG+*GG)*0.5;
-     *BB-(BBB+*BB)*0.5;
-     if (*RR >255) *RR-255;
-     if (*GG >255) *GG-255;
-     if (*BB >255) *BB-255;
+  if ((bobject[i].reflect != DULL)&&(bobject[i].reflect != MATTE))
+  {
+   getreflection(ray.X1,ray.Y1,ray.Z1,nx,ny,nz,&newray.X1,&newray.Y1,&newray.Z1);
+   newray.X2=x;
+   newray.Y2=y;
+   newray.Z2=z;
+   if (bobject[i].Red == SILVER)
+   {
+     RRR= *RR;
+     GGG= *GG;
+     BBB= *BB;
+     getraycolor(newray,&RRR,&GGG,&BBB,inglass);
+     *RR=(RRR+*RR)*0.5;
+     *GG=(GGG+*GG)*0.5;
+     *BB=(BBB+*BB)*0.5;
+     if (*RR >255) *RR=255;
+     if (*GG >255) *GG=255;
+     if (*BB >255) *BB=255;
+   }
 
    else
-   if (bobject[i].reflect■■GLASS)
-
-     if (iinglass)
+   if (bobject[i].reflect==GLASS)
+   {
+     if (!inglass)
        getraycolor(newray,RR,GG,BB,inglass);
-     getrefraction(ray.X1,ray.Y1,ray.Z1,nx,ny,nz,4newray.X1,&newray.Y1,&newray.Z1,&inglass);
+     getrefraction(ray.X1,ray.Y1,ray.Z1,nx,ny,nz,&newray.X1,&newray.Y1,&newray.Z1,&inglass);
      if (inglass)
-
-            RRR- *RR;
-            GGG- *GG;
-            BBB... *BB;
-            getraycolor(newray,5RRR,&GGG,5BBB,inglass);
-            *RR-(3*RRR+*RR)/4;
-            *GG-(3*GGG+*GG)/4;
-            *BB-(3*BBB+.148)/4;
-            if (*RR > 255) *RR-255;
-            if (*GG > 255) *GG-255;
-            if (*BB > 255) *BB-255;
+     {
+            RRR= *RR;
+            GGG= *GG;
+            BBB= *BB;
+            getraycolor(newray,&RRR,&GGG,&BBB,inglass);
+            *RR=(3*RRR+*RR)/4;
+            *GG=(3*GGG+*GG)/4;
+            *BB=(3*BBB+*BB)/4;
+            if (*RR > 255) *RR=255;
+            if (*GG > 255) *GG=255;
+            if (*BB > 255) *BB=255;
+     }
 
           else
+          {
 
-            getraycolor(newray,RR,GO,BB,inglass);
-            if (*RR > 255) *RR-255;
-            if (*GG > 255) *GG-255;
-            if (*BB > 255) *BB-255;
-
-
+            getraycolor(newray,RR,GG,BB,inglass);
+            if (*RR > 255) *RR=255;
+            if (*GG > 255) *GG=255;
+            if (*BB > 255) *BB=255;
+          }
+   }
        else
-        (
-          M.* *RR;
-          GGG- *GG;
-          BBB- *BB;
-          getraycolor(newray,5RRR,5000,5BBB,inglass);
-          *RR-(5*RRR+*RR)/6;
-          *GG-(5*GGG+*GG)/6;
-          *BB-(5*BBB+*BB)/6;
-          if (*RR > 255) *RR-255;
-          if (*GG > 255) *GG-255;
-          if (*BB > 255) *B111*.255;
+        {
+          RRR=*RR;
+          GGG=*GG;
+          BBB=*BB;
+          getraycolor(newray,&RRR,&GGG,&BBB,inglass);
+          *RR=(5*RRR+*RR)/6;
+          *GG=(5*GGG+*GG)/6;
+          *BB=(5*BBB+*BB)/6;
+          if (*RR > 255) *RR=255;
+          if (*GG > 255) *GG=255;
+          if (*BB > 255) *BB=255;
+        }
+  }
+     }
+    }
 
+  cy= -50.0; /* Y position of surface */
+  if (ray.Y1 != 0)
+  {
+   t=(cy-ray.Y2)/ray.Y1;
+   if ((t > 0) && (t < q))
+   {
+     q=t;
+     cx=ray.X1*t+ray.X2;
+     cz=ray.Z1*t+ray.Z2;
+     if ((cz < 0) && (cz > -400) && (fabs(cx) < 120))
+     {
+       intersect=TRUE;
+       inshadow=checkifinshadow(cx,cy,cz);
+       t=0;
 
+       for (i=100;i<(100+NUMLIGHTS);i++)
+       {
+          q=(bobject[i].y-cy)/sqrt(sqr(bobject[i].x-cx)+sqr(bobject[i].y-cy)+sqr(bobject[i].z-cz));
+          if (bobject[i].reflect > 5000) q=q/2+0.5;
+          t+=q;
+       }
 
-
-  cy- -50.0; /* Y position of surface */
-  if (ray.Y1 1- 0)
-
-   t-(cy-ray.Y2)/ray.Y1;
-   if ((t > 0) 55 (t < q))
-
-     q-t;
-     cx■ray.X1*t+ray.X2;
-     cz■ray.Z1*t+ray.Z2;
-     if ((es < 0) si (cz > -400) 55 (fabs(cx) < 120))
-
-       intersect-TRUE;
-       inshadow-checkifinshadow(cx,cy,cz);
-       t-0;
-       for (1-100;1<(100+NUMLIGHTS);i++)
-
-          q..(bobject[i].y-cy)/sqrt(sqr(bobject[i].x-cx)+sqr(bobject[i].y-cy)+sqr(bobject
-[i].z-cz));
-          if (bobject[il.reflect > 5000) q-q/2+0.5;
-          t+-q;
-
-       inshadow*...t/NUMLIGHTS;
+       inshadow*=t/NUMLIGHTS;
        if (WAXED)
-
-          if (SURFACE--WATER)
-
-           rad-sqrt(cx*cx+cz*cz):
-           newray.Y1■1.0/(1.0+RIPPLE*RIPPLE*AMP*AMP*sqr(cos(RIPPLE*rad)));
-            newray.X1-cx*sqrt(1.0-newray.Y1*newray.Y1)/rad;
-            newray.Z1-cz*sqrt(1.0-newray.Y1*newray.Y1)/rad;
+       {
+          if (SURFACE==WATER)
+          {
+           rad=sqrt(cx*cx+cz*cz);
+           newray.Y1=1.0/(1.0+RIPPLE*RIPPLE*AMP*AMP*sqr(cos(RIPPLE*rad)));
+            newray.X1=cx*sqrt(1.0-newray.Y1*newray.Y1)/rad;
+            newray.Z1=cz*sqrt(1.0-newray.Y1*newray.Y1)/rad;
             if (cos(rad) > 0)
-
-              newray.X1... -newray.X1;
-              newray.Z1- -newray.Z1;
-            1
-
+            {
+              newray.X1= -newray.X1;
+              newray.Z1= -newray.Z1;
+            }
+          }
           else
+          {
+            newray.X1=ray.X1;
+            newray.Y1= -ray.Y1;
+            newray.Z1=ray.Z1;
+          }
 
-            newray.X1-ray.X1;
-            newray.Y1- -ray.Y1;
-            newray.Z1-ray.Z1;
+          newray.X2=cx;
+          newray.Y2=cy;
+          newray.Z2=cz;
+          RRR=GGG=BBB=0;
+          getraycolor(newray,&RRR,&GGG,&BBB,inglass);
+       }
 
-          newray.X2-cx;
-          newray.Y2-cy;
-          newray.Z2-cz;
-          RRR-GGG-BBB-0;
-          getraycolor(newray,5RRR,4GGG,5BBB,inglass);
-
-        if (SURFACE - -CHECKERBOARD)
-
-          cx-(cx+150)/20.0;
-          cz/-20.0;
-          if (((int)(cx) + (int)(cz)) 4 2)
-
-            *RR-255; *GG...0; *BB=0;
-
+        if (SURFACE == CHECKERBOARD)
+        {
+          cx=(cx+150)/20.0;
+          cz/=20.0;
+          if (((int)(cx) + (int)(cz)) & 2)
+          {
+            *RR=255; *GG=0; *BB=0;
+          }
           else
-
-            *R.R..255; *GG-255; *BB-255;
+          {
+            *RR=255; *GG=255; *BB=255;
+          }
+          Stopped here
 
         }
         if (SURFACE - -MANDELBROT)
