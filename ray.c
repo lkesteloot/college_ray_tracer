@@ -1,51 +1,51 @@
 
- /*
-  * RAY TRACER
-  * Copyright (c) 1990 by Lawrence Kesteloot and Fredrik Fatemi
-  *
-  * Compile on an IRIS computer with:
-  *      cc ray.c -o ray -Zg -Zf
-  *
-  * To generate an image in the background, type:
-  *      ray name.world &
-  */
+/*
+ * RAY TRACER
+ * Copyright (c) 1990 by Lawrence Kesteloot and Fredrik Fatemi
+ *
+ * Compile on an IRIS computer with:
+ *      cc ray.c -o ray -Zg -Zf
+ *
+ * To generate an image in the background, type:
+ *      ray name.world &
+ */
 
 
- #include "comptype.h" /*   This file will tell us what computer this is   */
-                         /* being compiled on. If DOGRAPH is defined,      */
-                         /* then all of the graphics commands will be      */
-                         /* compiled too. If it is not defined, then       */
-                         /* the graphics commands will be commented out    */
-                         /* and the program can run on a VAX or something  */
+#include "comptype.h"   /* This file will tell us what computer this is   */
+                        /* being compiled on. If DOGRAPH is defined,      */
+                        /* then all of the graphics commands will be      */
+                        /* compiled too. If it is not defined, then       */
+                        /* the graphics commands will be commented out    */
+                        /* and the program can run on a VAX or something  */
 
- #include "stdio.h"
- #include "math.h"
- #ifdef DOGRAPH
- #include "gl.h"
- #include "device.h"
- #include "savescreen.h"
- #endif
+#include "stdio.h"
+#include "math.h"
+#ifdef DOGRAPH
+#include "gl.h"
+#include "device.h"
+#include "savescreen.h"
+#endif
 
- #ifdef DOGRAPH
- #define IRIS4D     /* If this is defined, this is begin compiled on a 4D Iris */
- #endif
+#ifdef DOGRAPH
+#define IRIS4D     /* If this is defined, this is begin compiled on a 4D Iris */
+#endif
 
- #define PI 3.1415926
- #define INITSTEP 16    /* The starting resolution */
- #define ENDSTEP 1      /* The final resolution     */
- #define GETMAXX 1023   /* Last pixel horizontally */
- #define GETMAXY 767    /* Last pixel vertically    */
- #define DISTANCE 1.0   /* Distance from eye to screen */
- #define WIDTH 0.6      /* Width of the screen. The distance  from the
-                         * eye to the screen is 1.0, and this WIDTH
-                         * will tell you how much the picture is zoomed
-                         * in. */
+#define PI 3.1415926
+#define INITSTEP 16    /* The starting resolution */
+#define ENDSTEP 1      /* The final resolution     */
+#define GETMAXX 1023   /* Last pixel horizontally */
+#define GETMAXY 767    /* Last pixel vertically    */
+#define DISTANCE 1.0   /* Distance from eye to screen */
+#define WIDTH 0.6      /* Width of the screen. The distance  from the
+                        * eye to the screen is 1.0, and this WIDTH
+                        * will tell you how much the picture is zoomed
+                        * in. */
 
- #define FILENAME "sphere.ppm" /* File to which to save the image */
+#define FILENAME "sphere.ppm" /* File to which to save the image */
 
- #ifndef FALSE
- #define FALSE 0
- #endif
+#ifndef FALSE
+#define FALSE 0
+#endif
 #ifndef TRUE
 #define TRUE (!FALSE)
 #endif
@@ -64,7 +64,7 @@
 
 #define AMP 4        /* Amplitude of the waves */
 
-                 /* Constants for bobject.reflect */
+/* Constants for bobject.reflect */
 #define DULL 0   /* The object does not reflect anything */
 #define SHINE 1 /* The object reflects all light rays to it */
 #define GLASS 2 /* We can see through the object and the light is refracted */
@@ -123,193 +123,193 @@ float EYEX,EYEY,EYEZ,CENTERX,CENTERY,CENTERZ; /* View points */
 char str[80]; /* All-purpose string */
 
 main (argc, argv)
-int argc;
-char *argv[];
+    int argc;
+    char *argv[];
 {
 #ifdef DOGRAPH
-  /*if (ismex())
+    /*if (ismex())
 
-    printf ("%cCannot run this program from MEX.  Quit MEX and try again.\n",7);
-    exit (1);
-  1*/
+      printf ("%cCannot run this program from MEX.  Quit MEX and try again.\n",7);
+      exit (1);
+      1*/
 #endif
-  initallvars();
-  if (argc > 1) {
+    initallvars();
+    if (argc > 1) {
 
-    TODISK=TRUE;
-    loadthisworld(argv[1]);
-    drawpicture();
+        TODISK=TRUE;
+        loadthisworld(argv[1]);
+        drawpicture();
 
-  } else {
-    while (menu()) ;
-  }
+    } else {
+        while (menu()) ;
+    }
 }
 
 
 initallvars ()
 {
-  reseteverything();
-  WAXED=FALSE;    /* WAXED means that the surface reflects */
-  NUMBOBJECTS=0; /* Number of objects in this world        */
-  TODISK=FALSE;   /* TRUE would send the output directly to disk */
-  ANTIALIASING=TRUE; /* Will anti-alias the final image */
-  KEEPIMAGE=FALSE;    /* TRUE would save the image after it is generated */
-  ZOOM=0;      /* Used when zooming into parts of the picture */
-  SURFACE=CHECKERBOARD; /* Initial surface */
-  AMBIANT=100;    /* Ambiant light. i.e., light in shadows, etc. Out of 255 */
-  MODIFIED=FALSE; /* TRUE-This world was modified and not saved to disk */
+    reseteverything();
+    WAXED=FALSE;    /* WAXED means that the surface reflects */
+    NUMBOBJECTS=0; /* Number of objects in this world        */
+    TODISK=FALSE;   /* TRUE would send the output directly to disk */
+    ANTIALIASING=TRUE; /* Will anti-alias the final image */
+    KEEPIMAGE=FALSE;    /* TRUE would save the image after it is generated */
+    ZOOM=0;      /* Used when zooming into parts of the picture */
+    SURFACE=CHECKERBOARD; /* Initial surface */
+    AMBIANT=100;    /* Ambiant light. i.e., light in shadows, etc. Out of 255 */
+    MODIFIED=FALSE; /* TRUE-This world was modified and not saved to disk */
 #ifndef DOGRAPH
-  TODISK=TRUE;
+    TODISK=TRUE;
 #endif
 }
 
 
 int menu()
 {
-  char ch;
+    char ch;
 
-  clrscr();
-  printf ("\n\n                                   Ray Tracer\n");
-  printf ("\n\n                                       by\n");
-  printf (    "                               Lawrence Kesteloot\n");
-  printf (    "                                      and\n");
-  printf (    "                                 Fredrik Fatemi\n");
-  printf ("\n\n");
-  printf ("    G - Go ahead and draw the image\n");
-  printf ("    D - To disk/to screen (currently to %s)\n",TODISK?"DISK":"SCREEN");
-  printf ("    K - Toggle Keep (save image to file '%s' - Currently %s)\n",FILENAME,KEEPIMAGE?"ON":"OFF");
-  printf ("    L - Load a graphic file for display\n");
+    clrscr();
+    printf ("\n\n                                   Ray Tracer\n");
+    printf ("\n\n                                       by\n");
+    printf (    "                               Lawrence Kesteloot\n");
+    printf (    "                                      and\n");
+    printf (    "                                 Fredrik Fatemi\n");
+    printf ("\n\n");
+    printf ("    G - Go ahead and draw the image\n");
+    printf ("    D - To disk/to screen (currently to %s)\n",TODISK?"DISK":"SCREEN");
+    printf ("    K - Toggle Keep (save image to file '%s' - Currently %s)\n",FILENAME,KEEPIMAGE?"ON":"OFF");
+    printf ("    L - Load a graphic file for display\n");
 #if DOGRAPH
-  printf ("    M - Modify this world\n");
+    printf ("    M - Modify this world\n");
 #endif
-  printf ("    N - Load a New World\n");
-  printf ("    P - Parameters (Platform=%d, Ambiant=%d, Eye=%d,%d,%d, Center=%d,%d,%d\n",SURFACE,AMBIANT,(int)EYEX,(int)EYEY,(int)EYEZ,(int)CENTERX,(int)CENTERY,(int)CENTERZ);
-  printf ("    R - Reset window\n");
-  printf ("    S - Save this world\n");
-  printf ("    W - Toggle Waxed (currently %s)\n",WAXED?"ON":"OFF");
-  printf ("    Q - Quit Ray Tracer\n");
-  printf ("\n\n>");
-  gets(str);
-  ch = toupper(str[0]);
-  switch (ch)
-  {
-    case 'G': drawpicture(); break;
-    case 'D': TODISK=!TODISK; break;
-    case 'K': KEEPIMAGE=!KEEPIMAGE; break;
-    case 'L': loadfile(); break;
+    printf ("    N - Load a New World\n");
+    printf ("    P - Parameters (Platform=%d, Ambiant=%d, Eye=%d,%d,%d, Center=%d,%d,%d\n",SURFACE,AMBIANT,(int)EYEX,(int)EYEY,(int)EYEZ,(int)CENTERX,(int)CENTERY,(int)CENTERZ);
+    printf ("    R - Reset window\n");
+    printf ("    S - Save this world\n");
+    printf ("    W - Toggle Waxed (currently %s)\n",WAXED?"ON":"OFF");
+    printf ("    Q - Quit Ray Tracer\n");
+    printf ("\n\n>");
+    gets(str);
+    ch = toupper(str[0]);
+    switch (ch)
+    {
+        case 'G': drawpicture(); break;
+        case 'D': TODISK=!TODISK; break;
+        case 'K': KEEPIMAGE=!KEEPIMAGE; break;
+        case 'L': loadfile(); break;
 #if DOGRAPH
-    case 'M': modifyworld(); break;
+        case 'M': modifyworld(); break;
 #endif
-    case 'N': loadworld(); break;
-    case 'P': changeparameters();
-    case 'R': resetwindow(); break;
-    case 'S': saveworld(); break;
-    case 'W': WAXED=!WAXED; MODIFIED=TRUE; break;
-    case 'Q': if (MODIFIED) {
+        case 'N': loadworld(); break;
+        case 'P': changeparameters();
+        case 'R': resetwindow(); break;
+        case 'S': saveworld(); break;
+        case 'W': WAXED=!WAXED; MODIFIED=TRUE; break;
+        case 'Q': if (MODIFIED) {
 
-                printf ("WORLD was modified. Are you sure you want to quit? (y/N) ");
-                gets(str);
-                if (toupper(str[0])=='Y') return (FALSE);
-              }
+                      printf ("WORLD was modified. Are you sure you want to quit? (y/N) ");
+                      gets(str);
+                      if (toupper(str[0])=='Y') return (FALSE);
+                  }
 
-              else return (FALSE);
-              }
-  return(TRUE);
-  }
+                  else return (FALSE);
+    }
+    return(TRUE);
+}
 
 drawpicture ()
 {
-  if (!TODISK) initialize(); else opendiskfile();
-  drawimage();
-  if (!TODISK) cleanup(); else closediskfile();
+    if (!TODISK) initialize(); else opendiskfile();
+    drawimage();
+    if (!TODISK) cleanup(); else closediskfile();
 }
 
 initialize ()
 {
 #ifdef DOGRAPH
 #ifdef IRIS4D
-  prefposition (0,1023,0,767);
-  foreground();
-  GID=winopen ("Ray Tracer");
+    prefposition (0,1023,0,767);
+    foreground();
+    GID=winopen ("Ray Tracer");
 
-  ginit () ;
-  cursoff();
+    ginit () ;
+    cursoff();
 #endif
-  tpoff();
-  RGBmode();
-  gconfig();
-  RGBcolor(0,0,0);
-  clear();
-  qdevice (LEFTMOUSE);
-  qdevice (MIDDLEMOUSE);
-  qdevice (RIGHTMOUSE);
-  qdevice (KEYBD);
-  qreset();
+    tpoff();
+    RGBmode();
+    gconfig();
+    RGBcolor(0,0,0);
+    clear();
+    qdevice (LEFTMOUSE);
+    qdevice (MIDDLEMOUSE);
+    qdevice (RIGHTMOUSE);
+    qdevice (KEYBD);
+    qreset();
 #endif
 }
 
 
 opendiskfile()
 {
-  if ((f=fopen(FILENAME,"w"))==NULL)
-  {
-    printf ("RAY.C: Unable to open file %s for output.",FILENAME);
-    exit(1);
-  }
-  fprintf(f, "P6 %d %d 255\n", GETMAXX+1, GETMAXY+1);
+    if ((f=fopen(FILENAME,"w"))==NULL)
+    {
+        printf ("RAY.C: Unable to open file %s for output.",FILENAME);
+        exit(1);
+    }
+    fprintf(f, "P6 %d %d 255\n", GETMAXX+1, GETMAXY+1);
 }
 
 drawimage()
- {
-  float height,width,x;
+{
+    float height,width,x;
 
-  initothervars();
-  do {
-   ZOOM=0;
-   drawbobjects();
-   if (ZOOM==3)
-   {
+    initothervars();
+    do {
+        ZOOM=0;
+        drawbobjects();
+        if (ZOOM==3)
+        {
 
-     width=WINDOWX2-WINDOWX1;
-     height=WINDOWY2-WINDOWY1;
-     WINDOWY2=(1.0*ZOOMY2/GETMAXY)*height+WINDOWY1;
-     WINDOWY1=(1.0*ZOOMY1/GETMAXY)*height+WINDOWY1;
-     WINDOWX2=(1.0*ZOOMX2/GETMAXX)*width+WINDOWX1;
-     WINDOWX1=(1.0*ZOOMX1/GETMAXX)*width+WINDOWX1;
-     x=(WINDOWX1+WINDOWX2)/2.0;
-     height=WINDOWY2-WINDOWY1;
-     width=height*GETMAXX/GETMAXY;
-     WINDOWX1=x-width/2;
-     WINDOWX2=x+width/2;
-   }
-  }
- while (ZOOM==3);
- if ((!done) && !TODISK) {
+            width=WINDOWX2-WINDOWX1;
+            height=WINDOWY2-WINDOWY1;
+            WINDOWY2=(1.0*ZOOMY2/GETMAXY)*height+WINDOWY1;
+            WINDOWY1=(1.0*ZOOMY1/GETMAXY)*height+WINDOWY1;
+            WINDOWX2=(1.0*ZOOMX2/GETMAXX)*width+WINDOWX1;
+            WINDOWX1=(1.0*ZOOMX1/GETMAXX)*width+WINDOWX1;
+            x=(WINDOWX1+WINDOWX2)/2.0;
+            height=WINDOWY2-WINDOWY1;
+            width=height*GETMAXX/GETMAXY;
+            WINDOWX1=x-width/2;
+            WINDOWX2=x+width/2;
+        }
+    }
+    while (ZOOM==3);
+    if ((!done) && !TODISK) {
 
-   if (ANTIALIASING) antialias();
+        if (ANTIALIASING) antialias();
 #ifdef DOGRAPH
-   if (KEEPIMAGE) saveimage (FILENAME);
+        if (KEEPIMAGE) saveimage (FILENAME);
 #endif
-  }
+    }
 }
 
 cleanup ()
 {
 #ifdef DOGRAPH
- if (!done) {
-   ringbell();
-   ringbell();
-   while (qtest()==0);
- }
+    if (!done) {
+        ringbell();
+        ringbell();
+        while (qtest()==0);
+    }
 
- greset();
- color(BLACK);
- clear();
- tpon();
+    greset();
+    color(BLACK);
+    clear();
+    tpon();
 #ifdef IRIS4D
- winclose(GID);
+    winclose(GID);
 #else
- gexit();
+    gexit();
 #endif
 #endif
 }
@@ -317,60 +317,61 @@ cleanup ()
 
 closediskfile()
 {
- fclose(f);
+    fclose(f);
 #ifdef DOGRAPH
- ringbell();
+    ringbell();
 #endif
 }
 
 
 initothervars()
 {
-  /* This routine defines some often-used variables so that they don't
-   * have to be calculated at every pixel */
+    /* This routine defines some often-used variables so that they don't
+     * have to be calculated at every pixel */
 
-  int i;
+    int i;
 
-  for (i=0;i<NUMBOBJECTS;i++) {
-   if (bobject[i].objecttype==CONEOBJECT)
-   {
+    for (i=0;i<NUMBOBJECTS;i++) {
+        if (bobject[i].objecttype==CONEOBJECT)
+        {
 
-     bobject[i].sina=sin(bobject[i].A);
-     bobject[i].cosa=cos(bobject[i].A);
-     bobject[i].tana=tan(bobject[i].A);
-     }
-     }
+            bobject[i].sina=sin(bobject[i].A);
+            bobject[i].cosa=cos(bobject[i].A);
+            bobject[i].tana=tan(bobject[i].A);
+        }
+    }
 
 
-  ZOOM= 0;
-  }
+    ZOOM= 0;
+}
 
 
 reseteverything()
 {
-  NUMLIGHTS=1;
-  bobject[100].x= -300;
-  bobject[100].y=500;
-  bobject[100].z=400;
-  bobject[100].r=100; /* Radius of bulb */
-  bobject[100].reflect=10000; /* BRIGHTNESS of light */
-  bobject[100].objecttype=SPHEREOBJECT;
-  resetwindow();
-  CENTERX=0; /* Point you are looking at in the world */
-  CENTERY=0;
-  CENTERZ=-300;
-  EYEX=0; /* Coordinate of eye */
-  EYEY=0;
-  EYEZ=150;
-  SURFACE=0; /* Checkerboard */
-  }
+    NUMLIGHTS=1;
+    bobject[100].x= -300;
+    bobject[100].y=500;
+    bobject[100].z=400;
+    bobject[100].r=100; /* Radius of bulb */
+    bobject[100].reflect=10000; /* BRIGHTNESS of light */
+    bobject[100].objecttype=SPHEREOBJECT;
+    resetwindow();
+    CENTERX=0; /* Point you are looking at in the world */
+    CENTERY=0;
+    CENTERZ=-300;
+    EYEX=0; /* Coordinate of eye */
+    EYEY=0;
+    EYEZ=150;
+    SURFACE=0; /* Checkerboard */
+}
 
 
 resetwindow()
-{ WINDOWX1= -WIDTH/2; /* Set ZOOM back to default */
-  WINDOWY1= -HEIGHT/2;
-  WINDOWX2= WIDTH/2;
-  WINDOWY2= HEIGHT/2;
+{
+    WINDOWX1= -WIDTH/2; /* Set ZOOM back to default */
+    WINDOWY1= -HEIGHT/2;
+    WINDOWX2= WIDTH/2;
+    WINDOWY2= HEIGHT/2;
 }
 
 
@@ -513,38 +514,38 @@ getpixelcolor(X,Y,RR,GG,BB)
     float X,Y;
     int *RR,*GG,*BB;
 {
-         struct RAY ray;
-         float r,rr,th,a,XX,YY,ZZ,XXX,YYY,ZZZ;
+    struct RAY ray;
+    float r,rr,th,a,XX,YY,ZZ,XXX,YYY,ZZZ;
 
-         /* The next few lines are the transformation to move the window around */
+    /* The next few lines are the transformation to move the window around */
 
-         rr=1.0/sqrt(sqr(EYEX-CENTERX)+sqr(EYEY-CENTERY)+sqr(EYEZ-CENTERZ));
-         XX=EYEX-(EYEX-CENTERX)*rr;
-         YY=EYEY-(EYEY-CENTERY)*rr;
-         ZZ=EYEZ-(EYEZ-CENTERZ)*rr;
+    rr=1.0/sqrt(sqr(EYEX-CENTERX)+sqr(EYEY-CENTERY)+sqr(EYEZ-CENTERZ));
+    XX=EYEX-(EYEX-CENTERX)*rr;
+    YY=EYEY-(EYEY-CENTERY)*rr;
+    ZZ=EYEZ-(EYEZ-CENTERZ)*rr;
 
-         XXX=EYEX-XX;
-         YYY=EYEY-YY;
-         ZZZ=EYEZ-ZZ;
-       /* ray.X1-(X)*sqrt(ZZZ*ZZZ+YYY*YYY)+(-Y)*XXX*YYY-XXX;
-         ray.Y1- (Y) *sqrt (ZZZ*ZZZ+XXX*XXX) -YYY;
-         ray.Z1-(-X)*XXX+(-Y)*YYY-ZZZ;*/
+    XXX=EYEX-XX;
+    YYY=EYEY-YY;
+    ZZZ=EYEZ-ZZ;
+    /* ray.X1-(X)*sqrt(ZZZ*ZZZ+YYY*YYY)+(-Y)*XXX*YYY-XXX;
+       ray.Y1- (Y) *sqrt (ZZZ*ZZZ+XXX*XXX) -YYY;
+       ray.Z1-(-X)*XXX+(-Y)*YYY-ZZZ;*/
 
-         rr=sqrt(XXX*XXX+ZZZ*ZZZ);
-         ray.X1=(Y*XXX*YYY+X*ZZZ)/rr-XXX;
-         ray.Y1=Y*rr-YYY;
-         ray.Z1=(-X*XXX+Y*ZZZ*YYY)/rr-ZZZ;
-  ray.X2=EYEX;
-  ray.Y2=EYEY;
-  ray.Z2=EYEZ;
+    rr=sqrt(XXX*XXX+ZZZ*ZZZ);
+    ray.X1=(Y*XXX*YYY+X*ZZZ)/rr-XXX;
+    ray.Y1=Y*rr-YYY;
+    ray.Z1=(-X*XXX+Y*ZZZ*YYY)/rr-ZZZ;
+    ray.X2=EYEX;
+    ray.Y2=EYEY;
+    ray.Z2=EYEZ;
 
-  *RR=(int)((-Y+HEIGHT/2)/HEIGHT*255);
-  if (*RR > 255) *RR=255;
-  if (*RR < 0) *RR=0;
-  *GG= *RR;
-  *BB= 255;
+    *RR=(int)((-Y+HEIGHT/2)/HEIGHT*255);
+    if (*RR > 255) *RR=255;
+    if (*RR < 0) *RR=0;
+    *GG= *RR;
+    *BB= 255;
 
-  getraycolor (ray,RR,GG,BB,FALSE);
+    getraycolor (ray,RR,GG,BB,FALSE);
 }
 
 
@@ -1004,7 +1005,7 @@ float cuberoot (x)
 float solvequarticequation(A,B,C,D)
     float A,B,C,D;
 {
- /* Don't even try to figure out what's going on in this function */
+    /* Don't even try to figure out what's going on in this function */
 
     float part1,cosPhi,TanPhi,root1,disc,LL,KK,GGG,asqd,part2,P,Q,R,G,HH,PP;
     float DDDD,H,Phi,RR,SS,R1,R2,R3,R4,t;
@@ -1115,7 +1116,7 @@ float checkifinshadow(x,y,z)
 }
 
 getreflection (A1,B1,C1,A2,B2,C2,A3,B3,C3)
-float A1,B1,C1,A2,B2,C2,*A3,*B3,*C3;
+    float A1,B1,C1,A2,B2,C2,*A3,*B3,*C3;
 {
     /* Given incoming vector A1,B1,C1 and normal vector A2,B2,C2, it will */
     /* return reflected vector A3,B3,C3 */
@@ -1149,9 +1150,9 @@ getrefraction (I1,I2,I3,N1,N2,N3,R1,R2,R3,inglass)
     N1*=t; N2*=t; N3*=t;
     th=acos(I1*N1+I2*N2+I3*N3);
     if (*inglass)
-      m=sin(th)*n2/n1;
+        m=sin(th)*n2/n1;
     else
-      m=sin(th)*n1/n2;
+        m=sin(th)*n1/n2;
     a=asin(m);
 
     *inglass= !*inglass;
@@ -1273,90 +1274,87 @@ int diff(c,downc,x)
 
 loadfile()
 {
-   char a[130];
+    char a[130];
 
-   clrscr();
-   system ("ls -1 *.SCR");
-   printf ("\n\nName of file to load: ");
+    clrscr();
+    system ("ls -1 *.SCR");
+    printf ("\n\nName of file to load: ");
 
-   gets(str);
-   if (strcmp(str,"") == 0) return;
-   strcpy (a,"disprgb ");
-   system (strcat (a,str));
+    gets(str);
+    if (strcmp(str,"") == 0) return;
+    strcpy (a,"disprgb ");
+    system (strcat (a,str));
 }
 
 #if 0
 modifyworld()
 {
-   /* This function allows the user to modify the current world. It is */
-   /* real messy cause I wrote it two days ago. Just assume it works and */
-   /* skip it, trust me. */
+    /* This function allows the user to modify the current world. It is */
+    /* real messy cause I wrote it two days ago. Just assume it works and */
+    /* skip it, trust me. */
 
-   int i,j,val,done,xx,yy,f,HANDINPUT,MGID;
-   short d;
-   char ch,s[130];
+    int i,j,val,done,xx,yy,f,HANDINPUT,MGID;
+    short d;
+    char ch,s[130];
 
 #ifdef IRIS4D
-   prefposition (0,1023,0,767);
-   foreground();
-   MGID=winopen ("Ray Tracer");
+    prefposition (0,1023,0,767);
+    foreground();
+    MGID=winopen ("Ray Tracer");
 #else
-   ginit();
+    ginit();
 #endif
 
-   tpoff();
-   qdevice (LEFTMOUSE);
-   qdevice (RIGHTMOUSE);
-   greset();
-   done=FALSE;
-   HANDINPUT=FALSE;
-   do
-   {
-     color (BLACK);
-     clear();
-     color (WHITE);
-     cmov2i(20,750);
-            charstr ("Current World: ") ;
-            if (NUMBOBJECTS=0)
-            {
-                  cmov21(20,730);
-                  charstr ("No objects defined.");
+    tpoff();
+    qdevice (LEFTMOUSE);
+    qdevice (RIGHTMOUSE);
+    greset();
+    done=FALSE;
+    HANDINPUT=FALSE;
+    do
+    {
+        color (BLACK);
+        clear();
+        color (WHITE);
+        cmov2i(20,750);
+        charstr ("Current World: ") ;
+        if (NUMBOBJECTS=0)
+        {
+            cmov21(20,730);
+            charstr ("No objects defined.");
 
             else
             {
-                  cmov2i (20, 730) ;
-                  charstr (" # Object                                                            X             I             Z R Red Grn Blu Reflect                                                         A              B            C To
-p Bttm" ) ;
-                  cmov2i (20, 710) ;
-                  charstr ("
+                cmov2i (20, 730) ;
+                charstr (" # Object                                                            X             I             Z R Red Grn Blu Reflect                                                         A              B            C To p Bttm" ) ;
+                cmov2i (20, 710) ;
+                charstr ("");
 
-                  for (i-0; i<NUMBOBJECTS; i++)
-
-                      cmov2i (20,680-16*i) ;
-                      sprint f (s, "%2d it-12sic4dt5d%5d#,4d%40i4d#14d %-8s1k4d1i5d1i5d45d%5d", is OBJECTNAME [bob
-ject[i].objecttype],(int)bobject[i].x,(int)bobject[iJ.y,(int)bobject[i].z,(int)bobject[i
-) . r, ( int) bobject [I ) . Red, ( int ) bobject [ ) .Green, ( int) bobject [i] . Blue, SURFACENAME [bobject
-    . reflect ] , (int) bobject [i ) . A, (int ) bobject [1 ] .B, (int ) bobject [i].C, (int)bobject [i] .top, (in
-t) bobject [ . bottom) ;
+                for (i-0; i<NUMBOBJECTS; i++)
+                {
+                    cmov2i (20,680-16*i) ;
+                    sprint f (s, "%2d it-12sic4dt5d%5d#,4d%40i4d#14d %-8s1k4d1i5d1i5d45d%5d", is OBJECTNAME [bobject[i].objecttype],(int)bobject[i].x,(int)bobject[iJ.y,(int)bobject[i].z,(int)bobject[i) . r, ( int) bobject [I ) . Red, ( int ) bobject [ ) .Green, ( int) bobject [i] . Blue, SURFACENAME [bobject . reflect ] , (int) bobject [i ) . A, (int ) bobject [1 ] .B, (int ) bobject [i].C, (int)bobject [i] .top, (in t) bobject [ . bottom) ;
                     charstr (s) ;
+                }
+            }
 
 
             cmov2i (20, 60);
-            charstr (" Click on action:                                                             <ADD OBJECT> <DELETE OBJECT> <HAND-INPUT> <QUIT>m)
+            charstr (" Click on action:                                                             <ADD OBJECT> <DELETE OBJECT> <HAND-INPUT> <QUIT>");
 
             curson () ;
             do
-
+            {
                   val..ciread (&d) ;
             }
             while (d=^0)
-            cursoff () ;
+                cursoff () ;
             xx-getvaluator (MOUSEX) ;
             yy-getvaluator (MOUSEY) ;
             if (yy < 100)
-
+            {
                   if ( (xx > 215) && (xx < 311) )
-
+                  {
                       NUMBOBJECTS++;
                       i=NUMBOBJECTS-1;
                       bobject[i].x=bobject[i].y=bobject[i].z=bobject[i].r=bobject[i].Red=bobject[i].Green=bobject [i].Blue=bobject[i].A=bobject[i].B-bobject[i].C-bobject[i].top-bobject[i].bottom=0;
@@ -1365,105 +1363,109 @@ t) bobject [ . bottom) ;
                       MODIFIED=TRUE;
                   }
                   if ( (xx > 338) 64 (xx < 458) )
-
+                  {
                       cmov2i (20,100) ;
                       charstr ("Click on the object to delete, or <Right Button> to quit.") ;
                       curson ( ) ;
                       do
-
+                      {
                            val-gread (&d) ;
-
+                      }
                       while (d--0) ;
                       cursoff () ;
                       if (val                         LEFTMOUSE)
-
-                           yy-getvaluator (MOUSEY) ;
-                              if (yy < 696)
+                      {
+                          yy-getvaluator (MOUSEY) ;
+                          if (yy < 696)
+                          {
+                              i-(696-yy) /16;
+                              if ( (i >- 0) && (i < NUMBOBJECTS) )
                               {
-                                    i-(696-yy) /16;
-                                    if ( (i >- 0) && (i < NUMBOBJECTS) )
-
                                           NUMBOBJECTS--;
                                           for (j-i;j<NUMBOBJECTS;j++)
                                                bobject[j]-bobject(j+1);
+                              }
+                              MODIFIED=TRUE;
+                          }
+                      }
 
-                                    MODIFIED-TRUE;
 
-
-
-                    if ((xx > 491) && (xx < 590))
-                         HANDINPUT-TRUE;
-                    if ((xx > 612) && (xx < 662)) done-TRUE;
+                      if ((xx > 491) && (xx < 590))
+                          HANDINPUT=TRUE;
+                      if ((xx > 612) && (xx < 662)) done-TRUE;
               }
               else
-
-                    if       (yy < 696)
-
-                         if (val--RIGHTMOUSE)                                      HANDINPUT-TRUE;
-                                (696-yy) /16;
-                         f-0;
-                         if       (xx <           726)          f-14;
-                         if       (xx <           680)          f-13;
-                         if       (xx <           637)          f-12;
-                         if       (xx <           591)          f-11;
-                         if       (xx <           548)          f-10;
-                         if       (xx <           502)          f-9;
-                         if       (xx <           429)          f-8;
-                         if       (xx <           392)          f-7;
-                         if       (xx <           356)          f-6;
-                         if       (xx <           320)          f-5;
-                         if       (xx <           286)          f-4;
-                         if       (xx <           236)          f-3;
-                         if       (xx <           194)          f-2;
-                         if       (xx <           145)          f-1;
-                         if       (xx <           47)        f-0;
+              {
+                  if       (yy < 696)
+                  {
+                      if (val--RIGHTMOUSE)
+                          HANDINPUT-TRUE;
+                      (696-yy) /16;
+                         f=0;
+                         if       (xx <           726)          f=14;
+                         if       (xx <           680)          f=13;
+                         if       (xx <           637)          f=12;
+                         if       (xx <           591)          f=11;
+                         if       (xx <           548)          f=10;
+                         if       (xx <           502)          f=9;
+                         if       (xx <           429)          f=8;
+                         if       (xx <           392)          f=7;
+                         if       (xx <           356)          f=6;
+                         if       (xx <           320)          f=5;
+                         if       (xx <           286)          f=4;
+                         if       (xx <           236)          f=3;
+                         if       (xx <           194)          f=2;
+                         if       (xx <           145)          f=1;
+                         if       (xx <           47)        f=0;
                          if       ( (f      >     0) && (i >- 0)                   && (i < NUMBOBJECTS) )
                          {
                               if (HANDINPUT)
-
+                              {
                                     handinputfield (i,f);
                                     HANDINPUT-FALSE;
-
+                              }
                               else
                                   editfield (i, f) ;
-                              MODIFIED-TRUE;
-
-
-
-
-        while ( !done) ;
-        color (BLACK) ;
-        clear () ;
-        greset () ;
-        tpon () ;
-   #ifdef IRIS4D
-        winclose (MGID) ;
-   #else
-        gexit () ;
-   #endif
+                              MODIFIED=TRUE;
                          }
+                  }
+              }
+            }
+        }
+    }
+    while ( !done) ;
+            color (BLACK) ;
+            clear () ;
+            greset () ;
+            tpon () ;
+#ifdef IRIS4D
+            winclose (MGID) ;
+#else
+            gexit () ;
+#endif
+}
 
 editfield (1, f)
 int 1, f;
+{
+    int xx,yy,oldyy,orgyy,val,v1,ft,orgi,dy;
+    short d;
+    float vf,orgf;
+    char s[100],ss[100);
 
-  int xx,yy,oldyy,orgyy,val,v1,ft,orgi,dy;
-  short d;
-  float vf,orgf;
-  char s[100],ss[100);
-
- switch (f)
-  {
-   case 1: ft-1; vi-bobject[i].objecttype; xx-3; break;
-   case 2: ft-2; vf-bobject[i).x; xx-15; break;
-   case 3: ft-2; vf-bobject[i).y; xx-20; break;
-   Case 4: ft-2; vf-bobject[i].z; xx-25; break;
-   case 5: ft-2; vf-bobject(i].r; xx-29; break;
-   case 6: ft-1; vi-bobject[i].Red; xx-33; break;
-   case 7: ft-1; vi-bobject(i].Green; xx-37; break;
-   case 8: ft-1; vi-bobject[i].Blue; xx-41; break;
-   case 9: ft-1; vi-bobject[i].reflect; xx-46; break;
-   case 10: ft-2; vf-bobject[i].A; xx-54; break;
-   case 11: ft-2; vf-bobject[i].B; xx-59; break;
+    switch (f)
+    {
+        case 1: ft-1; vi-bobject[i].objecttype; xx-3; break;
+        case 2: ft-2; vf-bobject[i).x; xx-15; break;
+        case 3: ft-2; vf-bobject[i).y; xx-20; break;
+                Case 4: ft-2; vf-bobject[i].z; xx-25; break;
+        case 5: ft-2; vf-bobject(i].r; xx-29; break;
+                        case 6: ft-1; vi-bobject[i].Red; xx-33; break;
+                        case 7: ft-1; vi-bobject(i].Green; xx-37; break;
+                                    case 8: ft-1; vi-bobject[i].Blue; xx-41; break;
+                                    case 9: ft-1; vi-bobject[i].reflect; xx-46; break;
+                                    case 10: ft-2; vf-bobject[i].A; xx-54; break;
+                                    case 11: ft-2; vf-bobject[i].B; xx-59; break;
    case 12: ft -2; vf-bobject[i].C; xx-64; break;
    case 13: ft-2; vf-bobject(i].top; xx-69; break;
    case 14: ft-2; vf..bobject[i].bottom; xx-74; break;
@@ -1681,32 +1683,32 @@ loadthisworld(str)
 
 saveworld()
 {
-   FILE *f;
-   int i;
+    FILE *f;
+    int i;
 
-   clrscr();
-   printf ("Name of the file to which to save this world: ");
-   gets(str);
-   if (str[0]==0) return;
-   if ((f=fopen(str,"w"))==NULL)
-   {
-       printf ("Unable to open file for output. Strike <RETURN> to continue.");
-       gets(str);
-       return;
-   }
+    clrscr();
+    printf ("Name of the file to which to save this world: ");
+    gets(str);
+    if (str[0]==0) return;
+    if ((f=fopen(str,"w"))==NULL)
+    {
+        printf ("Unable to open file for output. Strike <RETURN> to continue.");
+        gets(str);
+        return;
+    }
 
-   fprintf (f,"%d %d\n",NUMBOBJECTS,WAXED);
-   fprintf (f,"%f %f %f %f %f %f %d %d %f %f %f %f\n",EYEX,EYEY,EYEZ,CENTERX,CENTERY,CENTERZ,SURFACE,AMBIANT,WINDOWX1,WINDOWY1,WINDOWX2,WINDOWY2);
-   for (i=0;i<NUMBOBJECTS;i++)
-   {
-       fprintf (f,"%f %f %f %f %d %d %d %d %d %f %f %f %f %f %f %f %f\n",bobject[i].x,bobject[i].y,bobject[i].z,bobject[i].r,(int)bobject[i].Red,(int)bobject[i].Green,(int)bobject[i].Blue,(int)bobject[i].reflect,bobject[i].objecttype,bobject[i].A,bobject[i].B,bobject[i].C,bobject[i].top,bobject[i].bottom,bobject[i].ax,bobject[i].ay,bobject[i].az);
-   }
+    fprintf (f,"%d %d\n",NUMBOBJECTS,WAXED);
+    fprintf (f,"%f %f %f %f %f %f %d %d %f %f %f %f\n",EYEX,EYEY,EYEZ,CENTERX,CENTERY,CENTERZ,SURFACE,AMBIANT,WINDOWX1,WINDOWY1,WINDOWX2,WINDOWY2);
+    for (i=0;i<NUMBOBJECTS;i++)
+    {
+        fprintf (f,"%f %f %f %f %d %d %d %d %d %f %f %f %f %f %f %f %f\n",bobject[i].x,bobject[i].y,bobject[i].z,bobject[i].r,(int)bobject[i].Red,(int)bobject[i].Green,(int)bobject[i].Blue,(int)bobject[i].reflect,bobject[i].objecttype,bobject[i].A,bobject[i].B,bobject[i].C,bobject[i].top,bobject[i].bottom,bobject[i].ax,bobject[i].ay,bobject[i].az);
+    }
 
-   fprintf (f,"%d\n",NUMLIGHTS);
-   for (i=100;i<(100+NUMLIGHTS);i++)
-       fprintf (f,"%f %f %f %f %d\n",bobject[i].x,bobject[i].y,bobject[i].z,bobject[i].r,bobject[i].reflect);
-   fclose(f);
-   MODIFIED=FALSE;
+    fprintf (f,"%d\n",NUMLIGHTS);
+    for (i=100;i<(100+NUMLIGHTS);i++)
+        fprintf (f,"%f %f %f %f %d\n",bobject[i].x,bobject[i].y,bobject[i].z,bobject[i].r,bobject[i].reflect);
+    fclose(f);
+    MODIFIED=FALSE;
 }
 
 clrscr()
