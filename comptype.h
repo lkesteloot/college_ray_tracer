@@ -1,0 +1,3 @@
+
+// No graphics.
+#undef DOGRAPH
