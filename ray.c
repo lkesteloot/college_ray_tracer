@@ -136,7 +136,7 @@ char *argv[];
   initallvars();
   if (argc > 1) {
 
-    TODISK-TRUE;
+    TODISK=TRUE;
     loadthisworld(argv[1]);
     drawpicture();
 
@@ -179,7 +179,9 @@ int menu()
   printf ("    D - To disk/to screen (currently to %s)\n",TODISK?"DISK":"SCREEN");
   printf ("    K - Toggle Keep (save image to file '%s' - Currently %s)\n",FILENAME,KEEPIMAGE?"ON":"OFF");
   printf ("    L - Load a graphic file for display\n");
+#if DOGRAPH
   printf ("    M - Modify this world\n");
+#endif
   printf ("    N - Load a New World\n");
   printf ("    P - Parameters (Platform=%d, Ambiant=%d, Eye=%d,%d,%d, Center=%d,%d,%d\n",SURFACE,AMBIANT,(int)EYEX,(int)EYEY,(int)EYEZ,(int)CENTERX,(int)CENTERY,(int)CENTERZ);
   printf ("    R - Reset window\n");
@@ -195,7 +197,9 @@ int menu()
     case 'D': TODISK=!TODISK; break;
     case 'K': KEEPIMAGE=!KEEPIMAGE; break;
     case 'L': loadfile(); break;
+#if DOGRAPH
     case 'M': modifyworld(); break;
+#endif
     case 'N': loadworld(); break;
     case 'P': changeparameters();
     case 'R': resetwindow(); break;
@@ -527,11 +531,11 @@ getpixelcolor(X,Y,RR,GG,BB)
          XXX=EYEX-XX;
          YYY=EYEY-YY;
          ZZZ=EYEZ-ZZ;
-       /* ray.X1-(X)*sgrt(ZZZ*ZZZ+YYY*YYY)+(-Y)*XXX*YYY-XXX;
-         ray.Y1- (Y) *sgrt (ZZZ*ZZZ+XXX*XXX) -YYY;
+       /* ray.X1-(X)*sqrt(ZZZ*ZZZ+YYY*YYY)+(-Y)*XXX*YYY-XXX;
+         ray.Y1- (Y) *sqrt (ZZZ*ZZZ+XXX*XXX) -YYY;
          ray.Z1-(-X)*XXX+(-Y)*YYY-ZZZ;*/
 
-         rr=sgrt(XXX*XXX+ZZZ*ZZZ);
+         rr=sqrt(XXX*XXX+ZZZ*ZZZ);
          ray.X1=(Y*XXX*YYY+X*ZZZ)/rr-XXX;
          ray.Y1=Y*rr-YYY;
          ray.Z1=(-X*XXX+Y*ZZZ*YYY)/rr-ZZZ;
@@ -1190,124 +1194,129 @@ float sqr(x)
 
 antialias()
 {
-   int y;
-   RGBvalue red[1024],green[1024],blue[1024],downred[1024],downgreen[1024],downblue[1024];
+    int y;
+    RGBvalue red[1024],green[1024],blue[1024],downred[1024],downgreen[1024],downblue[1024];
 
 
 #ifdef DOGRAPH
-   ringbell();
-   for (y-ystart+l;y<-yend;y++)
-
-     cmov21(0,y);
-     readRGB (1024,red,green,blue);
-     cmov21(0,y-1);
-     readRGB (1024,downred,downgreen,downblue);
-     antialiasrow(red,green,blue,downred,downgreen,downblue,y);
-     cmov21(0,y-1);
-     writeRGB (1024,downred,downgreen,downblue);
-
+    ringbell();
+    for (y=ystart+1;y<=yend;y++)
+    {
+        cmov21(0,y);
+        readRGB (1024,red,green,blue);
+        cmov21(0,y-1);
+        readRGB (1024,downred,downgreen,downblue);
+        antialiasrow(red,green,blue,downred,downgreen,downblue,y);
+        cmov21(0,y-1);
+        writeRGB (1024,downred,downgreen,downblue);
+    }
 #endif
+}
 
 
 antialiasrow(red,green,blue,downred,downgreen,downblue,y)
-RGBvalue red[],green[],bluel],downred[],downgreen[],downblue[];
-int y;
+    RGBvalue red[],green[],blue[],downred[],downgreen[],downblue[];
+    int y;
+{
+    /* Will anti-alias a row of graphics by checking to see if the neighboring */
+    /* pixels are different. If they are, then the current pixel is assumed */
+    /* to be on a border, and is broken down into 16 sub-pixels and the colors */
+    /* are averaged. This creates an illusion and edges look smoother. */
 
-  /* Will anti-alias a row of graphics by checking to see if the neighboring */
-  /* pixels are different. If they are, then the current pixel is assumed */
-  /* to be on a border, and is broken down into 16 sub-pixels and the colors */
-  /* are averaged. This creates an illusion and edges look smoother. */
+    int x,R,G,B,r,g,b;
+    float xx,yy,X,Y,width,height;
+    RGBvalue newred[1024],newgreen[1024],newblue[1024];
 
-  int x,R,G,B,r,g,b;
-  float xx,yy,X,Y,width,height;
-  RGBvalue newred[1024],newgreen[1024],newblue[1024];
+    y--;
+    width=WINDOWX2-WINDOWX1;
+    height=WINDOWY2-WINDOWY1;
+    memcpy (newred, downred, 1024);
+    memcpy (newgreen,downgreen,1024);
+    memcpy (newblue,downblue,1024);
+    for (x=xstart;x<xend;x++)
+        if (diff(red,downred,x) || diff(green,downgreen,x) || diff(blue,downblue,x))
+        {
+            r=g=b=0;
+            for (xx=0.0;xx<1.0;xx+=0.25)
+            {
+                X = WINDOWX1+(width*(x+xx)/GETMAXX);
+                for (yy=0.0;yy<1.0;yy+=0.25)
+                {
+                    Y = WINDOWY1+(height*(y+yy)/GETMAXY);
+                    getpixelcolor(X,Y,&R,&G,&B);
+                    r+=R; g+=G; b+=B;
+                }
+            }
 
-  y--;
-  width-WINDOWX2-WINDOWX1;
-  height-WINDOWY2-WINDOWY1;
-  memcpy (newred, downred, 1024);
-  memcpy (newgreen,downgreen,1024);
-  memcpy inewblue,downblue,1024);
-  for (x-xstart;x<xend;x++)
-     if (diff(red,downred,x) II diff(green,downgreen,x) II diff(blue,downblue,x))
-     [
-      r-g-b-0;
-      for (xx-0.0;xx<1.0;xx+-0.25)
+            r/=16; g/=16; b/=16;
+            newred[x]=r;
+            newgreen[x]=g;
+            newblue[x]=b;
+        }
 
-        X - WINDOWX1+(width*(x+xx)/GETMAXX);
-        for (yy..0.0;yy<1.0;yy+-0.25)
-
-          Y   WINDOWY1+(height*(y+yy)/GETMAXY);
-          getpixelcolor(X,Y,aR,&G,&B);
-          r+-R; g+-G; b+-B;
-
-
-      r/-16; g/-16; b/-16;
-      newred[x]-r;
-      newgreen[x]-g;
-      newblue[x]-b;
-
-  memcpy(downred,newred,1024);
-   memcpy(downgreen,newgreen,1024);
-   memcpy(downblue,newblue,1024);
-
-
- int diff(c,downc,x)
- RGBvalue c[],downc[];
- int x;
-
-   /* Checks to see difference among four pixels */
-
-   int d-10;
-
-   if ((abs(c[xl-downc[x]) > d) II (abs(c[x]-c[x+11) > d) II
-       (abs(c[x+1]-downc[x+1]) > d) 31 (abs(downc[x]-downc[x+1)) > d) H
-       (abs(c[xl-downc[x+1)) > d) II (abs(downc[xl-c[x+1]) > do)
-     return(TRUE);
-   else
-     return(FALSE);
+    memcpy(downred,newred,1024);
+    memcpy(downgreen,newgreen,1024);
+    memcpy(downblue,newblue,1024);
+}
 
 
- loadfile()
+int diff(c,downc,x)
+    RGBvalue c[],downc[];
+    int x;
+{
+    /* Checks to see difference among four pixels */
 
-   char a[130);
+    int d=10;
+
+    if ((abs(c[x]-downc[x]) > d) || (abs(c[x]-c[x+1]) > d) ||
+            (abs(c[x+1]-downc[x+1]) > d) || (abs(downc[x]-downc[x+1]) > d) ||
+            (abs(c[x]-downc[x+1]) > d) || (abs(downc[x]-c[x+1]) > d))
+        return(TRUE);
+    else
+        return(FALSE);
+}
+
+loadfile()
+{
+   char a[130];
 
    clrscr();
    system ("ls -1 *.SCR");
    printf ("\n\nName of file to load: ");
 
    gets(str);
-   if (str--"") return;
+   if (strcmp(str,"") == 0) return;
    strcpy (a,"disprgb ");
    system (strcat (a,str));
+}
 
-
- modifyworld()
-
-   /* This function allows the user to modify the current world. It is
-   /* real messy cause I wrote it two days ago. Just assume it works and
+#if 0
+modifyworld()
+{
+   /* This function allows the user to modify the current world. It is */
+   /* real messy cause I wrote it two days ago. Just assume it works and */
    /* skip it, trust me. */
 
    int i,j,val,done,xx,yy,f,HANDINPUT,MGID;
    short d;
    char ch,s[130];
 
- #ifdef IRIS4D
+#ifdef IRIS4D
    prefposition (0,1023,0,767);
    foreground();
-   MGID-winopen ("Ray Tracer");
- #else
+   MGID=winopen ("Ray Tracer");
+#else
    ginit();
- #endif
+#endif
 
    tpoff();
    qdevice (LEFTMOUSE);
    qdevice (RIGHTMOUSE);
    greset();
-   done-FALSE;
-   HANDINPUT-FALSE;
+   done=FALSE;
+   HANDINPUT=FALSE;
    do
-
+   {
      color (BLACK);
      clear();
      color (WHITE);
@@ -1439,8 +1448,9 @@ tom-0;
    #else
         gexit () ;
    #endif
+                         }
 
-edit field (1, f)
+editfield (1, f)
 int 1, f;
 
   int xx,yy,oldyy,orgyy,val,v1,ft,orgi,dy;
@@ -1632,161 +1642,155 @@ int 1, f;
 
 
   uncidevice (KEYBD);
+  }
+#endif
 
 
 
 loadworld()
+{
+    clrscr();
+    system ("ls *.world");
+    printf ("\nName of the file from which to load a world: ");
+    gets(str);
+    if (str[0]==0) return;
+    loadthisworld(str);
+    MODIFIED=FALSE;
+}
 
-  clrscr();
-   system ("ls *.world");
-   printf ("\nName of the file from which to load a world: ");
-   gets(str);
-   if (str[0]--0) return;
-   loadthisworld(str);
-   MODIFIED-FALSE;
+loadthisworld(str)
+    char *str;
+{
+    int i,rr,gg,bb;
+    FILE *f;
 
+    if ((f=fopen(str,"r"))==NULL)
+    {
+        printf ("File '%s' not found. Strike <RETURN> to continue.",str);
+        gets(str);
+        return;
+    }
 
- loadthisworld(str)
- char *str;
+    fscanf (f,"%d %d\n",&NUMBOBJECTS,&WAXED);
+    fscanf (f,"%f %f %f %f %f %f %d %d %f %f %f %f\n",&EYEX,&EYEY,&EYEZ,&CENTERX,&CENTERY,&CENTERZ,&SURFACE,&AMBIANT,&WINDOWX1,&WINDOWY1,&WINDOWX2,&WINDOWY2);
+    for (i=0;i<NUMBOBJECTS;i++)
+    {
+        fscanf (f,"%f %f %f %f %d %d %d %d %d %f %f %f %f %f %f %f %f\n",&bobject[i].x,&bobject[i].y,&bobject[i].z,&bobject[i].r,&rr,&gg,&bb,&bobject[i].reflect,&bobject[i].objecttype,&bobject[i].A,&bobject[i].B,&bobject[i].C,&bobject[i].top,&bobject[i].bottom,&bobject[i].ax,&bobject[i].ay,&bobject[i].az);
+        bobject[i].Red=rr;
+        bobject[i].Green=gg;
+        bobject[i].Blue=bb;
+    }
+    fscanf (f,"%d\n",&NUMLIGHTS);
+    for (i=100;i<(100+NUMLIGHTS);i++)
+        fscanf (f,"%f %f %f %f %d\n",&bobject[i].x,&bobject[i].y,&bobject[i].z,&bobject[i].r, &bobject[i].reflect);
+    fclose(f);
+}
 
-   int igrr,gg,bb;
+saveworld()
+{
    FILE *f;
-
-   if ((f-fopen(str,"r"))--NULL)
-
-     printf ("File '%s' not found. Strike <RETURN> to continue.",str);
-     gets(str);
-     return;
-
-   fscanf (f,"%d %d\n",&NUMBOBJECTS,&WAXED);
-   fscanf (f,"%f %f %f %f %f kf %d %d 4f %f 4f %f\n",&EYEX,&EYEY,&EYEZ,4CENTERX,SCENTERY,i
- CENTERZ,LSURFACE,&AMBIANT,iWINDOWX1,&WINDOWY1,LWINDOWX2,4WINDOWY2);
-   for (1-0;i<NUMBOBJECTS;i++)
-
-     fscanf (f,"%f %f %f 4f %d %d 4d %d ird %f %f %f kf %f %f 4f 4f\n",0object[i].x,Ebobje
- ct[i].y,‘bobject[i].z,ibobject[i].r,irr,‘gg,ibb,ibobject[i].reflect,cbobject[i].objecttyp
- e,sbobject[i].A,&bobject[i].B,‘bobject[i].C,fibobject[i].top,ibobject[i].bottom,ibobject[i
- I.ax,6bobject[i].ay,&bobject(i).az);
-     bobject[i].Red-rr;
-     bobject[i].Green-gg;
-     bobject(i).Blue-bb;
-
-   fscanf (f,"%d\n",6NUMLIGHTS);
-   for (1-100;1<(100+NUMLIGHTS);i++)
-     fscanf (f,"%f %f tf tf 4d\n",thobject[i].x,6.bobject[i].y,ibobject[i].z,ibobject[i].r,
- Gbobject[i].reflect);
-   fclose(f);
-
-
- saveworld()
-
-   FILE *f;
-   int 1;
+   int i;
 
    clrscr();
    printf ("Name of the file to which to save this world: ");
    gets(str);
-   if (str[0]....0) return;
-   if ((f-fopen(str,"w"))--NULL)
-
-     printf ("Unable to open file for output  . Strike <RETURN> to continue.");
-     gets(str);
-     ret urn;
+   if (str[0]==0) return;
+   if ((f=fopen(str,"w"))==NULL)
+   {
+       printf ("Unable to open file for output. Strike <RETURN> to continue.");
+       gets(str);
+       return;
+   }
 
    fprintf (f,"%d %d\n",NUMBOBJECTS,WAXED);
-   fprintf (f,"%f %f %f %f %f %f %d id %f 4f %f %f\n",EYEX,EYEY,EYEZ,CENTERX,CENTERY,CENTE
- RZ,SURFACE,AMBIANT,WINDOWX1,WINDOWY1,WINDOWX2,WINDOWY2);
-   for (1,-D;i<NUMBOBJECTS;1++)
+   fprintf (f,"%f %f %f %f %f %f %d %d %f %f %f %f\n",EYEX,EYEY,EYEZ,CENTERX,CENTERY,CENTERZ,SURFACE,AMBIANT,WINDOWX1,WINDOWY1,WINDOWX2,WINDOWY2);
+   for (i=0;i<NUMBOBJECTS;i++)
+   {
+       fprintf (f,"%f %f %f %f %d %d %d %d %d %f %f %f %f %f %f %f %f\n",bobject[i].x,bobject[i].y,bobject[i].z,bobject[i].r,(int)bobject[i].Red,(int)bobject[i].Green,(int)bobject[i].Blue,(int)bobject[i].reflect,bobject[i].objecttype,bobject[i].A,bobject[i].B,bobject[i].C,bobject[i].top,bobject[i].bottom,bobject[i].ax,bobject[i].ay,bobject[i].az);
+   }
 
-
-     fprintf (f,"%f if tf %f %d %d %d %d id %f tf kf %f %f %f %f %f\n",bobject[i).x,bobjec
- t[i].y,bobject[i].z,bobject[i].r,(int)bobject[i].Red,(int)bobject[i].Green,(int)bobject[i
- ].Blue,(int)bobject[i].reflect,bobject[i].objecttype,bobject[i].Agbobject[i].B,bobject[i]
- .C,bobject[i].top,bobject[i].bottom,bobject[i].ax,bobject[i].ay,bobject[i].az);
-
-
-    fprintf (f,"%d\n",NUMLIG}(TS);
-    for (1-100;1<(100+NUMLIGHTS);i++)
-       fprintf (f,"%f 4f if 4f 4d\n",bobject(i).x,bobject[i].y,bobject[i].z,bobjectli].r,bo
-bject[i].reflect);
-    fclose(f);
-    MODIFIED-FALSE;
-
+   fprintf (f,"%d\n",NUMLIGHTS);
+   for (i=100;i<(100+NUMLIGHTS);i++)
+       fprintf (f,"%f %f %f %f %d\n",bobject[i].x,bobject[i].y,bobject[i].z,bobject[i].r,bobject[i].reflect);
+   fclose(f);
+   MODIFIED=FALSE;
+}
 
 clrscr()
-
+{
     /* Is there a built-in command to do this? */
-
     system ("clear");
+}
 
 
 getmandelbrot(p,q,R,G,B)
-float p,q;
-int *R,*G,*B;
-
+    float p,q;
+    int *R,*G,*B;
+{
     /* Returns the color of the Mandelbrot set at point p,q */
 
-         float boundary,x,y,oldx;
-         int count;
+    float boundary,x,y,oldx;
+    int count;
 
-         count-0;
-         boundary-0;
-         x..0;
-         y-0;
-         do
-
-           oldx-x;
-           x-x*x-y*y+p;
-           y-oldx*y+oldx*y+g;
-           boundary=x*x+y*y;
-           count++;
-
-         while ((boundary <- 4) 64 (count <- MAXCOUNT));
-         if (count        MAXCOUNT)
-
-           .R-255;
-           *G-{count*20)4256;
-           * B-0;
-
-         else
-
-                 *G- *B-0;
-
-
+    count=0;
+    boundary=0;
+    x=0;
+    y=0;
+    do
+    {
+        oldx=x;
+        x=x*x-y*y+p;
+        y=oldx*y+oldx*y+q;
+        boundary=x*x+y*y;
+        count++;
+    }
+    while ((boundary <= 4) && (count <= MAXCOUNT));
+    if (count <= MAXCOUNT)
+    {
+        *R=255;
+        *G=(count*20)%256;
+        *B=0;
+    }
+    else
+    {
+        *R=*G=*B=0;
+    }
+}
 
 changeparameters()
+{
+    /* Lets the user change the viewpoint, centerpoint, ambient light and */
+    /* surface */
 
-  /* Lets the user change the viewpoint, centerpoint, ambient light and */
-  /* surface */
-
-  clrscr();
-  printf ("Current eye:               <4d,%dd4d>\n",(int)EYEX,(int)EYEY,(int)EYEZ);
-  printf ("Current center: <4d,fed,%d>\n",(int)CENTERX,(int)CENTERY,(int)CENTERZ);
-  printf ("\nEnter new coordinates, or ENTER to keep:\n\n");
-  printf ("EYEX: ");
-  gets (str);
-  if (str[0]1-0) EYEX-atoi(str);
-  printf ("EYEY: ");
-  gets (str);
-if (str(0)1-0) EYEY-atoi(str);
-printf ("EYEZ: ");
-gets (str);
-if (str[0]I-0) EYEZ-atoi{str);
-printf ("CENTERX: ");
-gets (str);
-if (str[0]I-0) CENTERX-atoi(str);
-printf ("CENTERY: ");
-gets (str);
-if (str[0]I-0) CENTERY-atoi(str);
-printf ("CENTERZ: ");
-gets (str);
-if (str[0]1-0) CENTERZ-atoi(str);
-printf ("\nSurface currently td:                0-Checkerboard, l-Mandelbrot, 2-Water\n",SURFACE);
-printf ("SURFACE: ");
-gets (str);
-if (str[0]I-0) SURFACE-atoi(str);
-printf ("\nAmbiant light currently id out of 255.\n",AMBIANT);
-printf ("AMBIANT: ");
-gets {str);
-if (str[0]I-0) AMBIANT-atoi(str);
-MODIFIED-TRUE;
+    clrscr();
+    printf ("Current eye:               <%d,%d,%d>\n",(int)EYEX,(int)EYEY,(int)EYEZ);
+    printf ("Current center: <%d,%d,%d>\n",(int)CENTERX,(int)CENTERY,(int)CENTERZ);
+    printf ("\nEnter new coordinates, or ENTER to keep:\n\n");
+    printf ("EYEX: ");
+    gets (str);
+    if (str[0]!=0) EYEX=atoi(str);
+    printf ("EYEY: ");
+    gets (str);
+    if (str[0]!=0) EYEY-atoi(str);
+    printf ("EYEZ: ");
+    gets (str);
+    if (str[0]!=0) EYEZ=atoi(str);
+    printf ("CENTERX: ");
+    gets (str);
+    if (str[0]!=0) CENTERX=atoi(str);
+    printf ("CENTERY: ");
+    gets (str);
+    if (str[0]!=0) CENTERY=atoi(str);
+    printf ("CENTERZ: ");
+    gets (str);
+    if (str[0]!=0) CENTERZ=atoi(str);
+    printf ("\nSurface currently %d:                0-Checkerboard, 1-Mandelbrot, 2-Water\n",SURFACE);
+    printf ("SURFACE: ");
+    gets (str);
+    if (str[0]!=0) SURFACE=atoi(str);
+    printf ("\nAmbiant light currently %d out of 255.\n",AMBIANT);
+    printf ("AMBIANT: ");
+    gets (str);
+    if (str[0]!=0) AMBIANT=atoi(str);
+    MODIFIED=TRUE;
+}
