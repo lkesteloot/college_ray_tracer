@@ -41,7 +41,7 @@
                          * will tell you how much the picture is zoomed
                          * in. */
 
- #define FILENAME "SPHERES.SCR" /* File to which to save the image */
+ #define FILENAME "sphere.ppm" /* File to which to save the image */
 
  #ifndef FALSE
  #define FALSE 0
@@ -87,7 +87,7 @@ typedef unsigned char RGBvalue;
 
 char *OBJECTNAME[]={"Sphere","Torus","Cone","Ellipseloid","Paraboloid","Egg","Hyperboloid","Cylinder"};
 char *SURFACENAME[]={"Dull","Shine","Glass","Matte"};
-char *PLATFORMNAMEN[]={"Checkerboard","Mandelbrot","Water"};
+char *PLATFORMNAME[]={"Checkerboard","Mandelbrot","Water"};
 
 struct BOBJECT {
     int objecttype; /* See constants above */
@@ -193,7 +193,7 @@ int menu()
   ch = toupper(str[0]);
   switch (ch)
   {
-    case 'G': sleep(2); drawpicture(); break; /* SLEEP is necessary */
+    case 'G': drawpicture(); break;
     case 'D': TODISK=!TODISK; break;
     case 'K': KEEPIMAGE=!KEEPIMAGE; break;
     case 'L': loadfile(); break;
@@ -205,7 +205,7 @@ int menu()
     case 'R': resetwindow(); break;
     case 'S': saveworld(); break;
     case 'W': WAXED=!WAXED; MODIFIED=TRUE; break;
-    case 'C': if (MODIFIED) {
+    case 'Q': if (MODIFIED) {
 
                 printf ("WORLD was modified. Are you sure you want to quit? (y/N) ");
                 gets(str);
@@ -226,12 +226,11 @@ drawpicture ()
 
 initialize ()
 {
-
 #ifdef DOGRAPH
 #ifdef IRIS4D
   prefposition (0,1023,0,767);
   foreground();
-  GID-winopen ("Ray Tracer");
+  GID=winopen ("Ray Tracer");
 
   ginit () ;
   cursoff();
@@ -254,10 +253,10 @@ opendiskfile()
 {
   if ((f=fopen(FILENAME,"w"))==NULL)
   {
-
     printf ("RAY.C: Unable to open file %s for output.",FILENAME);
     exit(1);
   }
+  fprintf(f, "P6 %d %d 255\n", GETMAXX+1, GETMAXY+1);
 }
 
 drawimage()
@@ -377,139 +376,134 @@ resetwindow()
 
 drawbobjects()
 {
-  int xx,yy,x,y,step,R,G,B,val,skip;
-  short d;
-  float X,Y,height,width;
-  RGBvalue RA[1024],GA[1024],BA[1024],downRA[1024],downGA[1024],downBA[1024];
+    int xx,yy,x,y,step,R,G,B,val,skip;
+    short d;
+    float X,Y,height,width;
+    RGBvalue RA[1024],GA[1024],BA[1024],downRA[1024],downGA[1024],downBA[1024];
 
-  xstart=0;
-  xend=GETMAXX;
-  ystart=0;
-  yend=GETMAXY;
-  done=FALSE;
-  skip=FALSE;
-  width=WINDOWX2-WINDOWX1;
-  height=WINDOWY2-WINDOWY1;
+    xstart=0;
+    xend=GETMAXX;
+    ystart=0;
+    yend=GETMAXY;
+    done=FALSE;
+    skip=FALSE;
+    width=WINDOWX2-WINDOWX1;
+    height=WINDOWY2-WINDOWY1;
 
-  step=INITSTEP;
-  if (TODISK) step=1;
-  do {
+    step=INITSTEP;
+    if (TODISK) step=1;
+    do {
 
-     for(y=ystart;(y<=yend)&&(!done);y+=step)
-     {
-       if (TODISK&& y>ystart) 
-       {
-         memcpy(downRA,RA,1024);
-         memcpy(downGA,GA,1024);
-         memcpy(downBA,BA,1024);
-       }
-       Y = WINDOWY1+(height*y/GETMAXY);
-       for (x=xstart;x<=xend;x+=step)
-       {
-         if (((step==INITSTEP)||(x%(step*2)>0)||(y%(step*2)>0)) || skip||TODISK)
-         {
+        for(y=ystart;(y<=yend)&&(!done);y+=step)
+        {
+            if (TODISK&& y>ystart)
+            {
+                memcpy(downRA,RA,1024);
+                memcpy(downGA,GA,1024);
+                memcpy(downBA,BA,1024);
+            }
+            Y = WINDOWY2-(height*y/GETMAXY);
+            for (x=xstart;x<=xend;x+=step)
+            {
+                if (((step==INITSTEP)||(x%(step*2)>0)||(y%(step*2)>0)) || skip||TODISK)
+                {
 
-          X = WINDOWX1+(width*x/GETMAXX);
-          getpixelcolor(X,Y,&R,&G,&B);
-          if (TODISK) {
-             RA[x]=(char)R;
-             GA[x]=(char)G;
-             BA[x]=(char)B;
-           }
-          else
-          {
+                    X = WINDOWX1+(width*x/GETMAXX);
+                    getpixelcolor(X,Y,&R,&G,&B);
+                    if (TODISK) {
+                        RA[x]=(char)R;
+                        GA[x]=(char)G;
+                        BA[x]=(char)B;
+                    }
+                    else
+                    {
 
 #ifdef DOGRAPH
-             RGBcolor(R,G,B);
-             if (step--1)
-              pnt2i(x,y);
-             else
-               rectfi(x,y,x+step-1,y+step-1);
+                        RGBcolor(R,G,B);
+                        if (step--1)
+                            pnt2i(x,y);
+                        else
+                            rectfi(x,y,x+step-1,y+step-1);
 #endif
-          }
-         }
-       }
+                    }
+                }
+            }
 
 #ifdef DOGRAPH
-       if (!TODISK&&gtest())
-       {
+            if (!TODISK&&gtest())
+            {
+                d =1;
+                do
+                {
+                    val=gread(&d);
+                    if (val==KEYBD)
+                    {
+                        if (d=='z') ZOOM=1;
+                    }
 
-         d =1;
-         do
-         {
+                    if (d==1) cursors();
+                    if (d==0)
+                    {
+                        cursoff();
+                        xx=getvaluator(MOUSEX);
+                        yy=getvaluator(MOUSEY);
+                        if (val==LEFTMOUSE)
+                        {
+                            if (ZOOM==1)
+                            {
+                                ZOOMX1=xx;
+                                ZOOMY1=yy;
+                                ZOOM=2;
+                            }
+                            if ((xx<xstart)||(yy<ystart)) skip=TRUE;
+                            xstart=xx-xx*step;
+                            ystart=yy-yy%step;
+                            x=xstart;
+                        }
+                        if (val==RIGHTMOUSE)
+                        {
+                            if (ZOOM == 2)
+                            {
+                                ZOOMX2=xx;
+                                ZOOMY2=yy;
+                                ZOOM=3;
+                            }
 
-          val=gread(&d);
-          if (val==KEYBD)
-          {
+                            if ((xx>xend)||(yy>yend)) skip=TRUE;
+                            xend=xx-xx%step;
+                            yend=yy-yy%step;
+                        }
 
-             if (d=='z') ZOOM=1;
-          }
+                        if (val==MIDDLEMOUSE) done=TRUE;
+                    }
+                }
+                while ((d!=0)&&(val!=KEYBD));
+            }
+#endif
+            if (TODISK)
+            {
 
-          if (d==1) cursors();
-          if (d==0)
-          {
+                if (ANTIALIASING&&(y>ystart))
+                    antialiasrow(RA,GA,BA,downRA,downGA,downBA,y);
+                for(int qqq = 0; qqq < 1024; qqq++) {
+                    fwrite (&downRA[qqq], 1, 1, f);
+                    fwrite (&downGA[qqq], 1, 1, f);
+                    fwrite (&downBA[qqq], 1, 1, f);
+                }
+            }
+        }
 
-             cursoff();
-             xx=getvaluator(MOUSEX);
-             yy=getvaluator(MOUSEY);
-             if (val==LEFTMOUSE)
-             {
-
-              if (ZOOM==1)
-              {
-
-                 ZOOMX1=xx;
-                 ZOOMY1=yy;
-                 ZOOM=2;
-              }
-              if ((xx<xstart)||(yy<ystart)) skip=TRUE;
-              xstart=xx-xx*step;
-              ystart=yy-yy%step;
-              x=xstart;
-             }
-                   if (val==RIGHTMOUSE)
-                   {
-                     if (ZOOM == 2)
-                        ZOOMX2=xx;
-                        ZOOMY2=yy;
-                        ZOOM=3;
-                   }
-
-                     if ((xx>xend)||(yy>yend)) skip=TRUE;
-                     xend=xx-xx%step;
-                     yend=yy-yy%step;
-          }
-
-                   if (val==MIDDLEMOUSE) done=TRUE;
-         }
-       }
-
-
-               while ((d!=0)&&(val!=KEYBD));
-             }
-       #endif
-             if (TODISK)
-             {
-
-               if (ANTIALIASING&&(y>ystart))
-                 antialiasrow(RA,GA,BA,downRA,downGA,downBA,y);
-               fwrite (downRA,1,1024,f);
-               fwrite (downGA,1,1024,f);
-               fwrite (downBA,1,1024,f);
-             }
-  }
-
-
-           step/=2;
-         }
-         while ((step >= ENDSTEP) && (ZOOM!=3));
-         if (TODISK)
-{
-
-           fwrite (RA,1,1024,f);
-           fwrite (GA,1,1024,f);
-           fwrite (BA,1,1024,f);
-}
+        step/=2;
+    }
+    while ((step >= ENDSTEP) && (ZOOM!=3));
+    if (TODISK)
+    {
+        for(int qqq = 0; qqq < 1024; qqq++) {
+            fwrite (&RA[qqq], 1, 1, f);
+            fwrite (&GA[qqq], 1, 1, f);
+            fwrite (&BA[qqq], 1, 1, f);
+        }
+    }
 }
 
 
@@ -832,7 +826,7 @@ getnormalvector (i,x,y,z,nx,ny,nz)
     int i;
     float x,y,z,*nx,*ny,*nz;
 {
-    /* Returns the normal vector to the surface of object "1" at point x,y,z */
+    /* Returns the normal vector to the surface of object "i" at point x,y,z */
 
     float t;
 
@@ -937,9 +931,9 @@ float getintersection (i,ray,inglass)
             else
             {
                 if (inglass)
-                    t-(-B+sqrt(d))/(A+A);
+                    t=(-B+sqrt(d))/(A+A);
                 else
-                    t-(-B-sqrt(d))/(A+A);
+                    t=(-B-sqrt(d))/(A+A);
                 if ((bobject[i].top != 0)||(bobject[i].bottom != 0))
                 {
                     if ((Y1*t+Y2 < bobject[i].bottom)||(Y1*t+Y2 > bobject[i].top)||(t<0))
@@ -947,7 +941,7 @@ float getintersection (i,ray,inglass)
                         {
                             t=(-B+sqrt(d))/(A+A);
                             if ((Y1*t+Y2 < bobject[i].bottom)||(Y1*t+Y2 > bobject[i].top))
-                                t- -1.0;
+                                t= -1.0;
                             else
                                 inside[i]=TRUE;
                         }
@@ -1322,7 +1316,7 @@ modifyworld()
      color (WHITE);
      cmov2i(20,750);
             charstr ("Current World: ") ;
-            if (NUMBOBJECTS-0)
+            if (NUMBOBJECTS=0)
             {
                   cmov21(20,730);
                   charstr ("No objects defined.");
@@ -1363,13 +1357,11 @@ t) bobject [ . bottom) ;
                   if ( (xx > 215) && (xx < 311) )
 
                       NUMBOBJECTS++;
-                      i-NUMBOBJECTS-1;
-                      bobject [i].x..bobject [i] .y-bobject [i ) • z-bobject [i] .r-bobject (I) .Red-bobject [i] .Gr
-eenbobject [i ) . Blue-bobject [ 1] .A-bobject 11 .B-bobject [ . C-bobject [ 1] .top-bobject [I ] .bot
-tom-0;
-                      bobject [ ] . objecttype-SPHEREOBJECT;
-                      bobject [i ] . reflect-SHINE;
-                      MODIFIED-TRUE;
+                      i=NUMBOBJECTS-1;
+                      bobject[i].x=bobject[i].y=bobject[i].z=bobject[i].r=bobject[i].Red=bobject[i].Green=bobject [i].Blue=bobject[i].A=bobject[i].B-bobject[i].C-bobject[i].top-bobject[i].bottom=0;
+                      bobject[i].objecttype=SPHEREOBJECT;
+                      bobject[i].reflect=SHINE;
+                      MODIFIED=TRUE;
                   }
                   if ( (xx > 338) 64 (xx < 458) )
 
@@ -1771,7 +1763,7 @@ changeparameters()
     if (str[0]!=0) EYEX=atoi(str);
     printf ("EYEY: ");
     gets (str);
-    if (str[0]!=0) EYEY-atoi(str);
+    if (str[0]!=0) EYEY=atoi(str);
     printf ("EYEZ: ");
     gets (str);
     if (str[0]!=0) EYEZ=atoi(str);
