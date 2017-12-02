@@ -79,7 +79,7 @@
 #define HYPERBOLOID 6
 #define CYLINDER 7
 
-#define SILVER 1    /* Make bobject[i].Red-SILVER to color the object silver */
+#define SILVER 1    /* Make bobject[i].Red=SILVER to color the object silver */
 
 #ifndef DOGRAPH
 typedef unsigned char RGBvalue;
@@ -482,13 +482,14 @@ drawbobjects()
 #endif
             if (TODISK)
             {
-
-                if (ANTIALIASING&&(y>ystart))
-                    antialiasrow(RA,GA,BA,downRA,downGA,downBA,y);
-                for(int qqq = 0; qqq < 1024; qqq++) {
-                    fwrite (&downRA[qqq], 1, 1, f);
-                    fwrite (&downGA[qqq], 1, 1, f);
-                    fwrite (&downBA[qqq], 1, 1, f);
+                if (y > ystart) {
+                    if (ANTIALIASING)
+                        antialiasrow(RA,GA,BA,downRA,downGA,downBA,y);
+                    for(int qqq = 0; qqq < 1024; qqq++) {
+                        fwrite (&downRA[qqq], 1, 1, f);
+                        fwrite (&downGA[qqq], 1, 1, f);
+                        fwrite (&downBA[qqq], 1, 1, f);
+                    }
                 }
             }
         }
@@ -1236,7 +1237,7 @@ antialiasrow(red,green,blue,downred,downgreen,downblue,y)
                 X = WINDOWX1+(width*(x+xx)/GETMAXX);
                 for (yy=0.0;yy<1.0;yy+=0.25)
                 {
-                    Y = WINDOWY1+(height*(y+yy)/GETMAXY);
+                    Y = WINDOWY2-(height*(y+yy)/GETMAXY);
                     getpixelcolor(X,Y,&R,&G,&B);
                     r+=R; g+=G; b+=B;
                 }
