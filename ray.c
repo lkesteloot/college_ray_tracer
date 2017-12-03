@@ -545,17 +545,24 @@ getpixelcolor(X,Y,RR,GG,BB)
     *GG= *RR;
     *BB= 255;
 
-    getraycolor (ray,RR,GG,BB,FALSE);
+    getraycolor (ray,RR,GG,BB,FALSE,10);
 }
 
 
-getraycolor (ray,RR,GG,BB,inglass)
+getraycolor (ray,RR,GG,BB,inglass,levels)
     struct RAY ray;
-    int *RR,*GG,*BB,inglass;
+    int *RR,*GG,*BB,inglass,levels;
 {
     /* getraycolor returns the color of the object at the point at which the */
     /* ray intersects the nearest object. If the object is reflective, then */
     /* getraycolor is called recursively with the reflected or refracted ray */
+
+    if (levels == 0) {
+        *RR = 255;
+        *GG = 0;
+        *BB = 0;
+        return;
+    }
 
     int r,g,b,i,j,RRR,GGG,BBB,closest,intersect,isinside;
     float x,y,z,t,A,B,C,q,cx,cy,cz,a,nx,ny,nz,lx,ly,lz,rr,rad,inshadow,temp,mrad,ma;
@@ -651,7 +658,7 @@ getraycolor (ray,RR,GG,BB,inglass)
                     RRR= *RR;
                     GGG= *GG;
                     BBB= *BB;
-                    getraycolor(newray,&RRR,&GGG,&BBB,inglass);
+                    getraycolor(newray,&RRR,&GGG,&BBB,inglass, levels - 1);
                     *RR=(RRR+*RR)*0.5;
                     *GG=(GGG+*GG)*0.5;
                     *BB=(BBB+*BB)*0.5;
@@ -663,24 +670,30 @@ getraycolor (ray,RR,GG,BB,inglass)
                     if (bobject[i].reflect==GLASS)
                     {
                         if (!inglass)
-                            getraycolor(newray,RR,GG,BB,inglass);
+                            getraycolor(newray,RR,GG,BB,inglass, levels - 1);
                         getrefraction(ray.X1,ray.Y1,ray.Z1,nx,ny,nz,&newray.X1,&newray.Y1,&newray.Z1,&inglass);
                         if (inglass)
                         {
-                            RRR= *RR;
-                            GGG= *GG;
-                            BBB= *BB;
-                            getraycolor(newray,&RRR,&GGG,&BBB,inglass);
-                            *RR=(3*RRR+*RR)/4;
-                            *GG=(3*GGG+*GG)/4;
-                            *BB=(3*BBB+*BB)/4;
+                            // None of this is right.
+                            int rRR = *RR;
+                            int rGG = *GG;
+                            int rBB = *BB;
+                            RRR = 70;
+                            GGG = 150;
+                            BBB = 130;
+                            getraycolor(newray,&RRR,&GGG,&BBB,inglass, levels - 1);
+                            float f=0.9;
+                            *RR=f*RRR+(1 - f)*rRR;
+                            *GG=f*GGG+(1 - f)*rGG;
+                            *BB=f*BBB+(1 - f)*rBB;
+
                             if (*RR > 255) *RR=255;
                             if (*GG > 255) *GG=255;
                             if (*BB > 255) *BB=255;
                         }
                         else
                         {
-                            getraycolor(newray,RR,GG,BB,inglass);
+                            getraycolor(newray,RR,GG,BB,inglass, levels - 1);
                             if (*RR > 255) *RR=255;
                             if (*GG > 255) *GG=255;
                             if (*BB > 255) *BB=255;
@@ -691,7 +704,7 @@ getraycolor (ray,RR,GG,BB,inglass)
                         RRR=*RR;
                         GGG=*GG;
                         BBB=*BB;
-                        getraycolor(newray,&RRR,&GGG,&BBB,inglass);
+                        getraycolor(newray,&RRR,&GGG,&BBB,inglass, levels - 1);
                         *RR=(5*RRR+*RR)/6;
                         *GG=(5*GGG+*GG)/6;
                         *BB=(5*BBB+*BB)/6;
@@ -751,7 +764,7 @@ getraycolor (ray,RR,GG,BB,inglass)
                     newray.Y2=cy;
                     newray.Z2=cz;
                     RRR=GGG=BBB=0;
-                    getraycolor(newray,&RRR,&GGG,&BBB,inglass);
+                    getraycolor(newray,&RRR,&GGG,&BBB,inglass, levels - 1);
                 }
 
                 if (SURFACE == CHECKERBOARD)
@@ -1136,17 +1149,17 @@ getrefraction (I1,I2,I3,N1,N2,N3,R1,R2,R3,inglass)
     float I1,I2,I3,N1,N2,N3,*R1,*R2,*R3;
     int *inglass;
 {
-    /* Given incoming vector 11,12,13, and normal vector N1,N2,N3, it will */
-    /* return the refracted vector R1,R2,R3. If singlass• is false, then */
+    /* Given incoming vector I1,I2,I3, and normal vector N1,N2,N3, it will */
+    /* return the refracted vector R1,R2,R3. If "inglass" is false, then */
     /* it will refract according to the ratio from air to glass, otherwise */
     /* it will refract according to the ratio from glass to air. */
 
     float t,a,th,n1=1.0,n2=1.52,m,o;
 
-    t=1.0/sqrt(sqr(I1)+sqr(I2)+sqr(I3));
+    t=-1.0/sqrt(sqr(I1)+sqr(I2)+sqr(I3));
     I1*=t; I2*=t; I3*=t;
     t=1.0/sqrt(sqr(N1)+sqr(N2)+sqr(N3));
-    if (inglass) t= -t;
+    if (*inglass) t= -t;
     N1*=t; N2*=t; N3*=t;
     th=acos(I1*N1+I2*N2+I3*N3);
     if (*inglass)
